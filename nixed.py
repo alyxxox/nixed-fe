@@ -4,72 +4,24 @@ import argparse
 import threading
 
 parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument('-h', '--help',
-    dest='help',
-    action='store_true')
-parser.add_argument('-i', '-install', 
-    dest='install', 
-    action='store_true', 
-    help='Install queried package.')
-parser.add_argument('-sh', '-shell', 
-    dest='shell', 
-    action='store_true', 
-    help='Leverage `nix-shell` to test out queried package in a non-persistent shell environment')
-parser.add_argument('-r', '-remove', 
-    dest='remove', 
-    action='store_true', 
-    help='Remove queried package')
-parser.add_argument('-u', '-update', 
-    dest='update', 
-    action='store_true', 
-    help='Update channels and installed packages.')
-parser.add_argument('-q', '-query', 
-    dest='query', 
-    action='store_true', 
-    help='Search store for queried package')
-parser.add_argument('-ls', '-list.installed', 
-    dest='listInstalled', 
-    action='store_true', 
-    help='Modification flag for -query. Specifies searching from installed packages rather than from store.')
-parser.add_argument('-nur',
-    dest='nur',
-    action='store_true',
-    help='Use Nix User Repositories (nur.repos.*) rather than standard nixpkgs channel.')
-parser.add_argument('-add.channel',
-    dest='addChannel',
-    action='store_true')
-parser.add_argument('-remove.channel',
-    dest='removeChannel',
-    action='store_true')
-parser.add_argument('-channel.list',
-    dest='listChannels',
-    action='store_true')
-parser.add_argument('-cd', '-collect.garbage', 
-    dest='garbageCollection', 
-    action='store_true', 
-    help='Clean up unused directory paths from old packages and shells')
-parser.add_argument('-remove.launcher', 
-    dest='removeLauncher', 
-    action='store_true', 
-    help='Manually delete launcher entry from paths.applications')
-parser.add_argument('-first.time.setup', 
-    dest='firstTimeSetup', 
-    action='store_true')
-parser.add_argument('-debug', 
-    dest='debug', 
-    action='store_true', 
-    help='Manually edit launcher entry')
-parser.add_argument('-test.paths',
-    dest='testPaths',
-    action='store_true',
-    help='Debug option to test the directory pathing for .desktop files.')
-parser.add_argument(dest='positionalArgument', 
-    action='append', 
-    nargs='?', 
-    help="Recommended to avoid requesting multiple packages in one command but if you do, put them quotes like so: nixed -i 'chromium firefox lynx'")
-parser.add_argument(dest='positionalArgument2',
-    action='append',
-    nargs='?')
+parser.add_argument('-h', '--help', dest='help', action='store_true')
+parser.add_argument('-i', '-install', dest='install', action='store_true', help='Install queried package.')
+parser.add_argument('-sh', '-shell', dest='shell', action='store_true', help='Leverage `nix-shell` to test out queried package in a non-persistent shell environment')
+parser.add_argument('-r', '-remove', dest='remove', action='store_true', help='Remove queried package')
+parser.add_argument('-u', '-update', dest='update', action='store_true', help='Update channels and installed packages.')
+parser.add_argument('-q', '-query', dest='query', action='store_true', help='Search store for queried package')
+parser.add_argument('-ls', '-list.installed', dest='listInstalled', action='store_true', help='Modification flag for -query. Specifies searching from installed packages rather than from store.')
+parser.add_argument('-nur', dest='nur', action='store_true', help='Use Nix User Repositories (nur.repos.*) rather than standard nixpkgs channel.')
+parser.add_argument('-add.channel', dest='addChannel', action='store_true')
+parser.add_argument('-remove.channel', dest='removeChannel', action='store_true')
+parser.add_argument('-channel.list', dest='listChannels', action='store_true')
+parser.add_argument('-cd', '-collect.garbage', dest='garbageCollection', action='store_true', help='Clean up unused directory paths from old packages and shells')
+parser.add_argument('-remove.launcher', dest='removeLauncher', action='store_true', help='Manually delete launcher entry from paths.applications')
+parser.add_argument('-first.time.setup', dest='firstTimeSetup', action='store_true')
+parser.add_argument('-debug', dest='debug', action='store_true', help='Manually edit launcher entry')
+parser.add_argument('-test.paths',dest='testPaths',action='store_true',help='Debug option to test the directory pathing for .desktop files.')
+parser.add_argument(dest='positionalArgument', action='append', nargs='?', help="Recommended to avoid requesting multiple packages in one command but if you do, put them quotes like so: nixed -i 'chromium firefox lynx'")
+parser.add_argument(dest='positionalArgument2', action='append', nargs='?')
 args = parser.parse_args()
 class paths():
     applications = '~/.local/share/applications/'
