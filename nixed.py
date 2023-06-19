@@ -19,6 +19,7 @@ parser.add_argument('-cd', '-collect.garbage', dest='garbageCollection', action=
 parser.add_argument('-remove.launcher', dest='removeLauncher', action='store_true', help='Manually delete launcher entry from paths.applications')
 parser.add_argument('-first.time.setup', dest='firstTimeSetup', action='store_true')
 parser.add_argument('-debug', dest='debug', action='store_true', help='Manually edit launcher entry')
+parser.add_argument('-optimize.install.paths', dest='optimizeStore', action='store_true')
 parser.add_argument('-test.paths',dest='testPaths',action='store_true',help='Debug option to test the directory pathing for .desktop files.')
 parser.add_argument(dest='positionalArgument', action='append', nargs='?', help="Recommended to avoid requesting multiple packages in one command but if you do, put them quotes like so: nixed -i 'chromium firefox lynx'")
 parser.add_argument(dest='positionalArgument2', action='append', nargs='?')
@@ -111,6 +112,8 @@ class debug():
         os.system('nano %s%s.desktop' % (paths.applications, positParser.positOut.capitalize()))
     def testPaths():
         print('%s%s' % (paths.applications, positParser.positOut))
+    def optimizeStore():
+        os.system('nix-store --optimize')
     def help():
         print(
 '''
@@ -245,5 +248,9 @@ if args.debug == True:
 ## if all else fails
 if args.help == True or positParser.positOut == 'help':
     debug.help()
+    exit()
+if args.optimizeStore == True:
+    debug.optimizeStore()
+    exit()
 else:
     print("Unknown command '%s'\nType 'nixed --help' to view available options" % (positParser.positOut))
