@@ -4,16 +4,22 @@ import argparse
 import threading
 parser = argparse.ArgumentParser(
     description='Pyrex2 package manager/wrapper. Built with the intention of simplifying package distribution via declarative initialisation of nix, pacman, flatpak, and npm in one function.', 
-    epilog='Use nix.[unit], aur.[unit], flatpak.[unit], or npm.[unit] to specify source.\nexample: pyrex --order aur.firefox')
+    epilog='Use nix.[unit], aur.[unit], flatpak.[unit], or npm.[unit] to specify source.\nexample: pyrex --station aur.firefox')
 parser.add_argument('-s', '--station', dest='install', action='store_true', help='Install units')
 parser.add_argument('-t', '--trash', dest='remove', action='store_true', help='Remove units')
 parser.add_argument('-o', '--overhaul', dest='update', action='store_true', help='Update system')
 parser.add_argument('-f', '--find', dest='find', action='store_true', help='find units')
-parser.add_argument('-bs', '--build-source', dest='source', action='store_true', help='Build and install unit from source (Nix only for now)')
-parser.add_argument('-rd', '--remove-debris', dest='collectGarbage', action='store_true', help='Collect unused units/paths (nix only for now)')
-parser.add_argument('-c', '--compactor', dest='compactor', action='store_true', help='Consolidate shared dependencies to save storage and optimize file paths at the expense of less reproducibility. (Set to true by default)')
+parser.add_argument('-rr', '--rebase', dest='source', action='store_true', help='Build and install unit from source (Nix only for now)')
+parser.add_argument('-gc', '--garbage-collector', dest='collectGarbage', action='store_true', help='Collect unused units/paths (nix only for now)')
+parser.add_argument('-c', '--compactor', dest='compactor', action='store_true', help='Consolidate shared dependencies to save storage and optimize file paths at the expense of less reproducibility. (Set to true per install by default)')
 parser.add_argument('--shell', dest='shell', action='store_true', help='Install unit in non-persistent shell environment. (nix only for now)')
 parser.add_argument(dest='stdinn', action='append', nargs='?')
+
+# user configs #
+class configs():
+    autoCompactor = True
+    autoCollectGarbage = False
+    autoRebase = False
 
 args = parser.parse_args()
 class cliParser():
@@ -23,6 +29,8 @@ class cliParser():
     noQuotes = noRbracket.replace("'", "")
     specin = noQuotes
 # add custom maintained installed units list >>
+def compactor():
+    os.system('nix-store --optimise --log-format bar-with-logs')
 if args.install == True:
     if args.shell == True:
         if 'nix.' in cliParser.specin:
@@ -36,8 +44,10 @@ if args.install == True:
         if 'nix.' in cliParser.specin:
             unit = cliParser.specin.replace('nix.', '')
             os.system('nix-env -iA --log-format bar-with-logs nixpkgs.%s' % (unit))
-            os.system('nix-build "<nixpkgs>" -A %s --check' % (unit))
-            os.system('nix-store --optimize --log-format bar-with-logs')
+            if configs.autoRebase == True:
+                os.system('nix-build "<nixpkgs>" -A %s --check' % (unit))
+            if configs.autoCompactor == True:
+                compactor()
             exit()
         elif 'aur.' in cliParser.specin:
             unit = cliParser.specin.replace('aur.', '')
@@ -56,7 +66,7 @@ if args.install == True:
             os.system('npm install %s' % (unit))
             exit()
 if args.compactor == True:
-    os.system('nix-store --optimise --log-format bar-with-logs')
+    compactor()
     exit()
 def collectGarbage():
     os.system('nix-collect-garbage -d --log-format bar-with-logs')
@@ -82,7 +92,8 @@ if args.remove == True:
     if 'nix.' in cliParser.specin:
         unit = cliParser.specin.replace('nix.', '')
         os.system('nix-env -e --log-format bar-with-logs %s' % (unit))
-        #collectGarbage()
+        if configs.autoCollectGarbage == True:
+            collectGarbage()
         exit()
     elif 'aur.' in cliParser.specin:
         unit = cliParser.specin.replace('aur.', '')
@@ -198,7 +209,7 @@ if args.find == True:
             os.system('cat ~/.pkgs-installed.txt')
             print('Flatpaks:')
             os.system('flatpak list') #>> ~/.pkgs-installed.txt')
-            os.system('rm ~/.pkgs-installed.txt')
+            os.system('rm ~/.pkgs-installed.txt') 
         listunits()
         exit()
     else:
