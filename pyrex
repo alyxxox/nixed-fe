@@ -222,5 +222,5 @@ elif args.compactor == True:
 elif args.debug == True:
     print(specin)
 if args.version:
-    print('Pyrex System Manager version 4.11.05-a1')
+    print('Pyrex System Manager version 4.11.05')
     exit()
