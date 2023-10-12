@@ -1,7 +1,7 @@
 # Pyrex4 System Manager.
 ## Built with the intention of simplifying package distribution via declarative initialisation of nix, pacman, and flatpak in one function.
 
-## Current Version: 4.10
+## Current Version: 4.11.05
 
 ## Dependencies:
 - Python3 <=
