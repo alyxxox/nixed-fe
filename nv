@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+
+import subprocess
+import argparse
+import threading
+import time
+
+parser = argparse.ArgumentParser(description='Pyrex4 System Manager. Built with the intention of simplifying package distribution via declarative initialisation of nix, pacman, flatpak in one function.',)
+parser.add_argument('-i', '--install', dest='install', action='store_true', help='Install packages')
+parser.add_argument('-t', '--trash', dest='remove', action='store_true', help='Remove packages')
+parser.add_argument('-o', '--overhaul', dest='update', action='store_true', help='Update system')
+parser.add_argument('-f', '--find', dest='find', action='store_true', help='Find packages1')
+#parser.add_argument('--verbose', dest='verbose', action='store_true', help='Require user confirmation before any command is processed. (Currently only implemented with AUR)')
+#parser.add_argument('-fs', '--from-scratch', dest='source', action='store_true', help='Build and install unit from source (Nix only for now)')
+parser.add_argument('-sh', '--shell', dest='shell', action='store_true', help='Install unit in non-persistent shell environment. (Nix only for now)')
+parser.add_argument('-gd', '--garbage-disposal', dest='collectGarbage', action='store_true', help='Collect unused packages/paths (Nix only for now)')
+parser.add_argument('-cc', '--compact', dest='compactor', action='store_true', help='Consolidate shared dependencies to save storage and optimize file paths at the expense of less reproducibility. (Set to true per install by default)')
+parser.add_argument('-v', '--version', dest='version', action='store_true', help='Show version number')
+parser.add_argument('--debug-parser', dest='debug', action='store_true')
+parser.add_argument(dest='package', action='append', nargs='?', help='must be the last argument presented')
+
+# user configs 
+class env_vars():
+    autoCompactor = False
+    autoCollectGarbage = True
+    autoRebase = False
+    launcherDir = '$HOME/.local/share/applications/'
+    browser = '/opt/firefox-nightly/firefox'
+args = parser.parse_args()
+
+class CliParser:
+    def __init__(self, package):
+        self.package = package
+    def clean_input(self):
+        cleaned_input = str(self.package).strip('[]\'')
+        return cleaned_input
+cli_parser = CliParser(args.package)
+specin = cli_parser.clean_input()
+
+class __run():
+    def compactor():
+        compactor_cmd = ['nix-store', '--optimise', '--log-format', 'bar-with-logs']
+        subprocess.call(compactor_cmd)
+    def collectGarbage():
+        cg_cmd = ['nix-collect-garbage', '-d', '--log-format', 'bar-with-logs']
+        print('Cleaning up workspace/')
+        subprocess.call(cg_cmd)
+        #os.system('nix-collect-garbage')
+
+class aur():
+    def install():
+        aurInstall_cmd = ['yay', '-S', '{}']
+        if 'aur.' in specin:
+            unit = specin.replace('aur.', '')
+            aurInstall_proc = subprocess.call(aurInstall_cmd.format(unit))
+        else:
+            print('Unknown repo in %s' % (specin))
+    def remove():
+        aurRemove_cmd = ['yay', '-R', '{}', '--noconfirm']
+        if 'aur.' in specin:
+            unit = specin.replace('aur.', '')
+            subprocess.call(aurRemove_cmd.format(unit))
+        else:
+            print('Unknown repo in %s' % (specin))
+    def update():
+        aurUpdate_cmd = ['yay', '--noconfirm']
+        aurUpdate_proc = subprocess.call(aurUpdate_cmd)
+        #output = aurUpdate_proc.communicate()[0]
+    def find():
+        aurfind_cmd = ['yay', '-Ss', '{}']
+        unit = specin.replace('aur.', '')
+        if '.installed' in specin:
+            subprocess.call(['yay', '-Ss'])
+        else:
+            aurfind = subprocess.call(aurfind_cmd.format(unit))
+
+class flatpak():
+    def install():
+        flatpakInstall_cmd = ['flatpak', 'install', '{}']
+        if 'flatpak.' in specin:
+            unit = specin.replace('flatpak.', '')
+            subprocess.call(flatpakInstall_cmd.format(unit))
+        else:
+            print('Unknown repo in %s' % (specin))
+    def remove():
+        flatpakRemove_cmd = ['flatpak', 'remove', '{}']
+        if 'flatpak.' in specin:
+            unit = specin.replace('flatpak.', '')
+            subprocess.call(flatpakRemove_cmd.format(unit))
+        else:
+            print('Unknown repo in %s' % (specin))
+    def update():
+        flatpakUpdate_cmd = ['flatpak', 'update', '-y']
+        flatpakUpdate_proc = subprocess.call(flatpakUpdate_cmd)
+    def find():
+        unit = specin.replace('flatpak.', '')
+        if '.installed' in specin:
+            subprocess.call(['flatpak', 'list'])
+        else:
+            print('Available Flatpak packages:')
+            subprocess.call(['flatpak', 'search', '{}'.format(unit)])
+
+class nix():
+    def install():
+        nixInstall_cmd = ['nix-env', '-iA', '--log-format', 'bar-with-logs', 'nixpkgs.{}']
+        if 'nix.' in specin:
+            unit = specin.replace('nix.', '')
+            nixInstall_proc = subprocess.call(nixInstall_cmd.format(unit))
+            if env_vars.autoRebase:
+                nixInstall_proc = subprocess.call(['nix-build', '<nixpkgs>', '-A', '{}'.format(unit), '--check'])
+            if env_vars.autoCompactor:
+                __run.compactor()
+        else:
+            print('Unknown repo in %s' % (specin))
+    def shell():
+        nixShell_cmd = ['nix-shell', '-p', '{}']
+        if 'nix.' in specin:
+            unit = specin.replace('nix.', '')
+            nixShell_proc = subprocess.call(nixShell_cmd.format(unit))
+        else:
+            print('Unknown repo in {}'.format(specin))
+    def remove():
+        nixRemove_cmd = ['nix-env', '-e', '--log-format', 'bar-with-logs', '{}']
+        if 'nix.' in specin:
+            unit = specin.replace('nix.', '')
+            subprocess.call(nixRemove_cmd.format(unit))
+            if env_vars.autoCollectGarbage == True:
+                __run.collectGarbage()
+        else:
+            print('Unknown repo in %s' % (specin))
+    def update():
+        nix_channelUpdate_cmd = ['nix-channel', '--update', '--log-format', 'bar-with-logs']
+        nix_envUpdate_cmd = ['nix-env', '--upgrade', '--log-format', 'bar-with-logs']
+        nix_channelUpdate_root = ['sudo', 'nix-channel', '--update', '--log-format', 'bar-with-logs']
+        nix_envUpdate_root = ['sudo', 'nix-env', '--upgrade', '--log-format', 'bar-with-logs']
+        #__run.collectGarbage()
+        nix_channelUpdate_root_proc = subprocess.call(nix_channelUpdate_root)
+        nix_envUpdate_root_proc = subprocess.call(nix_envUpdate_root)
+        nix_channelUpdate_proc = subprocess.call(nix_channelUpdate_cmd)
+        nix_envUpdate_proc = subprocess.call(nix_envUpdate_cmd)
+        # gc = input('Run garbage collection? y/N')
+        # if gc == 'y' or 'Y':
+        #     collectGarbage()
+    def find():
+        unit = specin.replace('nix.', '')
+        nixsearchurl = 'https://search.nixos.org/packages?type=packages&query={}'
+        if '.installed' in specin:
+            if unit == 'installed':
+                print('Installed nixpkgs:')
+                subprocess.call(['nix-env', '-q', '--installed'])
+            else:
+                no_install = unit.replace('.installed', '')
+                subprocess.call(['nix-env', '-q', '{}'.format(no_install), '--installed'])
+        # nix-env --available is absurdly slow and takes a ridiculoud amount of ram
+        # instead, just search the repo website via a browser stored in env_vars.browser = {}
+        # change or add 'nixsearchurl' to change the repo that is searched
+        else:
+            subprocess.call([env_vars.browser, nixsearchurl.format(unit)])
+    def build():
+        if 'nix.' in specin:
+            unit = specin.replace('nix.', '')
+            nixBuild_proc = ['nix-env', '-iA', '--option', 'substitute', 'false', '--log-format', 'bar-with-logs', 'nixpkgs.{}'.format(unit)]
+            subprocess.call(nixBuild_proc)
+            #os.system('nix-env -iA --option substitute false --log-format bar-with-logs nixpkgs.%s' % (unit))
+        elif 'nur.' in specin:
+            nixBuild_proc = ["nix-env", "-f", "'<nixpkgs>'", "-iA", "--option", "substitute", "false", "--log-format", "bar-with-logs", "{}".format(specin)]
+            subprocess.call(nixBuild_proc)
+            #os.system("nix-env -f '<nixpkgs>' -iA --option substitute false --log-format bar-with-logs %s" % (specin))
+
+if args.install:
+    if 'nix.' in specin:
+        nix.install()
+    elif 'aur.' in specin:
+        aur.install()
+    elif 'flatpak.' in specin:
+        flatpak.install()
+    exit()
+elif args.shell:
+    nix.shell()
+    exit()
+elif args.remove:
+    if 'nix.' in specin:
+        nix.remove()
+    elif 'aur.' in specin:
+        aur.remove()
+    elif 'flatpak.' in specin:
+        flatpak.remove()
+    exit()
+elif args.update:
+    nixUpdateThread = threading.Thread(target=nix.update)
+    aurUpdateThread = threading.Thread(target=aur.update)
+    flatpakUpdateThread = threading.Thread(target=flatpak.update)
+    subprocess.call(['sudo', 'echo', 'Changing user privileges ->'])
+    if 'nix' in specin:
+        if ':aur' in specin:
+            nixUpdateThread.start()
+            aurUpdateThread.start()
+        if ':flatpak' in specin:
+            nixUpdateThread.start()
+            flatpakUpdateThread.start()
+        else:
+            nixUpdate()
+    elif 'aur' in specin:
+        if ':nix' in specin:
+            aurUpdateThread.start()
+            nixUpdateThread.start()
+        if ':flatpak' in specin:
+            aurUpdateThread.start()
+            flatpakUpdateThread.start()
+        else:
+            aur.update()
+    elif 'flatpak' in specin:
+        if ':aur' in specin:
+            flatpakUpdateThread.start()
+            aurUpdateThread.start()        
+        if ':nix' in specin:
+            nixUpdateThread.start()
+            flatpakUpdateThread.start()
+        else:
+            flatpak.update()
+    else:
+        flatpakUpdateThread.start()
+        aurUpdateThread.start()
+        nixUpdateThread.start()
+    exit()
+elif args.find:
+    if 'nix.' in specin:
+        nix.find()
+    elif 'aur.' in specin:
+        aur.find()
+    elif 'flatpak.' in specin:
+        flatpak.find()
+    exit()
+elif args.collectGarbage:
+    __run.collectGarbage()
+    exit()
+elif args.compactor == True:
+    __run.compactor()
+    exit()
+elif args.debug == True:
+    print(specin)
+if args.version:
+    print('Pyrex System Manager (nv) version 4.11.06')
+    exit()
