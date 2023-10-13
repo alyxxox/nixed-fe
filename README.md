@@ -10,7 +10,7 @@
 - yay/pacman (optional)
 
 ## Installation: 
-- `mv pyrex /usr/local/bin/`
+- `mv nv /usr/local/bin/`
 
 ## Options:
 ```
