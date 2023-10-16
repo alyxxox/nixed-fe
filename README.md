@@ -1,7 +1,11 @@
 # Pyrex4 System Manager.
 ## Built with the intention of simplifying package distribution via declarative initialisation of nix, pacman, and flatpak in one function.
 
-## Current Version: 4.11.05
+# Goals:
+- [ ] integration with Distrobox
+- [ ] Search all 'repositories' give user prompt to choose where from
+- [ ] Proper config and installation method
+## Current Version: 4.11.06
 
 ## Dependencies:
 - Python3 <=
