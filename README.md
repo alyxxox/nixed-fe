@@ -2,7 +2,7 @@
 ## Built with the intention of simplifying package distribution via declarative initialisation of nix, pacman, and flatpak in one function.
 
 # Goals:
-- [ ] integration with Distrobox
+- [x] integration with Distrobox
 - [ ] Search all 'repositories' give user prompt to choose where from
 - [ ] Proper config and installation method
 ## Current Version: 4.11.06
