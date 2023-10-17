@@ -5,7 +5,7 @@
 - [x] integration with Distrobox (in progress)
 - [ ] Search all 'repositories' give user prompt to choose where from
 - [ ] Proper config and installation method
-## Current Version: 4.11.06
+## Current Version: 4.12.02
 
 ## Dependencies:
 - Python3 <=
