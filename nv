@@ -6,17 +6,42 @@ import threading
 import time
 
 parser = argparse.ArgumentParser(description='Pyrex4 System Manager. Built with the intention of simplifying package distribution via declarative initialisation of nix, pacman, flatpak in one function.',)
-parser.add_argument('-i', '--install', dest='install', action='store_true', help='Install packages')
-parser.add_argument('-t', '--trash', dest='remove', action='store_true', help='Remove packages')
-parser.add_argument('-o', '--overhaul', dest='update', action='store_true', help='Update system')
-parser.add_argument('-f', '--find', dest='find', action='store_true', help='Find packages1')
+parser.add_argument(
+    '-i', '--install', 
+    dest='install', 
+    action='store_true', 
+    help='Install packages'
+    )
+parser.add_argument(
+    '-t', '--trash', 
+    dest='remove', 
+    action='store_true', 
+    help='Remove packages'
+    )
+parser.add_argument(
+    '-o', '--overhaul', 
+    dest='update', 
+    action='store_true', 
+    help='Update system'
+    )
+parser.add_argument(
+    '-f', '--find', 
+    dest='find', 
+    action='store_true', 
+    help='Find packages'
+    )
 #parser.add_argument('--verbose', dest='verbose', action='store_true', help='Require user confirmation before any command is processed. (Currently only implemented with AUR)')
 #parser.add_argument('-fs', '--from-scratch', dest='source', action='store_true', help='Build and install unit from source (Nix only for now)')
-parser.add_argument('-sh', '--shell', dest='shell', action='store_true', help='Install unit in non-persistent shell environment. (Nix only for now)')
-parser.add_argument('-gd', '--garbage-disposal', dest='collectGarbage', action='store_true', help='Collect unused packages/paths (Nix only for now)')
-parser.add_argument('-cc', '--compact', dest='compactor', action='store_true', help='Consolidate shared dependencies to save storage and optimize file paths at the expense of less reproducibility. (Set to true per install by default)')
+parser.add_argument(
+    '-sh', '--shell', 
+    dest='shell', 
+    action='store_true', 
+    help='Install unit in non-persistent shell environment. (Nix only [WIP])'
+    )
+parser.add_argument('-gd', '--garbage-disposal', dest='collectGarbage', action='store_true', help='Collect unused packages/paths (Nix function)')
+parser.add_argument('-cc', '--compact', dest='compactor', action='store_true', help='Consolidate shared dependencies to save storage and optimize file paths at the expense of less reproducibility. (Set to False per install by default)')
 parser.add_argument('-v', '--version', dest='version', action='store_true', help='Show version number')
-parser.add_argument('--debug-parser', dest='debug', action='store_true')
+parser.add_argument('--debug-parser', dest='debug', action='store_true', help="Prints the raw output of the input parser. For debugging purposes and shouldn't be included in final release")
 parser.add_argument(dest='package', action='append', nargs='?', help='must be the last argument presented')
 
 # user configs 
@@ -25,7 +50,9 @@ class env_vars():
     autoCollectGarbage = True
     autoRebase = False
     launcherDir = '$HOME/.local/share/applications/'
-    browser = '/opt/firefox-nightly/firefox'
+    # browser = '/opt/firefox-nightly/firefox --new-window'
+    update_root = False
+    shellImage = 'fedora-template'
 args = parser.parse_args()
 
 class CliParser:
@@ -37,7 +64,7 @@ class CliParser:
 cli_parser = CliParser(args.package)
 specin = cli_parser.clean_input()
 
-class __run():
+class run():
     def compactor():
         compactor_cmd = ['nix-store', '--optimise', '--log-format', 'bar-with-logs']
         subprocess.call(compactor_cmd)
@@ -47,19 +74,44 @@ class __run():
         subprocess.call(cg_cmd)
         #os.system('nix-collect-garbage')
 
+# Native functions
+def shell():
+    if 'aur:' in specin:
+        unit = specin.replace('aur:', '')
+        shellImage = 'arch-template'
+        distrobox_install_cmd = ['distrobox', 'enter', '{}'.format(unit), '-r', '-e', 'sudo', 'pacman', '-S', '{}'.format(unit)]
+    elif 'dnf:' in specin:
+        unit = specin.replace('dnf:', '')
+        shellImage = 'fedora-template'
+        distrobox_install_cmd = ['distrobox', 'enter', '{}'.format(unit), '-r', '-e', 'sudo', 'dnf', 'install', '{}'.format(unit)]
+    elif 'apt:' in specin:
+        unit = specin.replace('apt:', '')
+        shellImage = 'debian-template'
+        distrobox_install_cmd = ['distrobox', 'enter', '{}'.format(unit), '-r', '-e', 'sudo', 'apt', 'install', '{}'.format(unit)]
+    distrobox_create_cmd = ['distrobox', 'create', '-r', '-c', '{}'.format(shellImage), '-n', '{}'.format(unit), '-a', '--volume="$HOME/.Xauthority:/root/.Xauthority:rw"']
+    distrobox_enter_cmd = ['distrobox', 'enter', '-r', '{}'.format(unit)]
+    distrobox_stop_cmd = ['distrobox', 'stop', '-Y', '-r', '{}'.format(unit)]
+    distrobox_remove_cmd = ['distrobox', 'rm', '-Y', '-r', '{}'.format(unit)]
+
+    subprocess.call(distrobox_create_cmd)
+    subprocess.call(distrobox_install_cmd)
+    subprocess.call(distrobox_enter_cmd)
+    subprocess.call(distrobox_stop_cmd)
+    subprocess.call(distrobox_remove_cmd)
+
 class aur():
     def install():
-        aurInstall_cmd = ['yay', '-S', '{}']
-        if 'aur.' in specin:
-            unit = specin.replace('aur.', '')
-            aurInstall_proc = subprocess.call(aurInstall_cmd.format(unit))
+        if 'aur:' in specin:
+            unit = specin.replace('aur:', '')
+            aurInstall_cmd = ['yay', '-S', '{}'.format(unit)]
+            aurInstall_proc = subprocess.call(aurInstall_cmd)
         else:
             print('Unknown repo in %s' % (specin))
     def remove():
-        aurRemove_cmd = ['yay', '-R', '{}', '--noconfirm']
-        if 'aur.' in specin:
-            unit = specin.replace('aur.', '')
-            subprocess.call(aurRemove_cmd.format(unit))
+        if 'aur:' in specin:
+            unit = specin.replace('aur:', '')
+            aurRemove_cmd = ['yay', '-R', '{}'.format(unit), '--noconfirm']
+            subprocess.call(aurRemove_cmd)
         else:
             print('Unknown repo in %s' % (specin))
     def update():
@@ -67,33 +119,34 @@ class aur():
         aurUpdate_proc = subprocess.call(aurUpdate_cmd)
         #output = aurUpdate_proc.communicate()[0]
     def find():
-        aurfind_cmd = ['yay', '-Ss', '{}']
-        unit = specin.replace('aur.', '')
+        unit = specin.replace('aur:', '')
+        aurfind_cmd = ['yay', '-Ss', '{}'.format(unit)]
         if '.installed' in specin:
             subprocess.call(['yay', '-Ss'])
         else:
-            aurfind = subprocess.call(aurfind_cmd.format(unit))
+            aurfind = subprocess.call(aurfind_cmd)
 
 class flatpak():
     def install():
-        flatpakInstall_cmd = ['flatpak', 'install', '{}']
-        if 'flatpak.' in specin:
-            unit = specin.replace('flatpak.', '')
-            subprocess.call(flatpakInstall_cmd.format(unit))
+        if 'flatpak:' in specin:
+            unit = specin.replace('flatpak:', '')
+            flatpakInstall_cmd = ['flatpak', 'install', '{}'.format(unit)]
+            subprocess.call(flatpakInstall_cmd)
         else:
             print('Unknown repo in %s' % (specin))
     def remove():
-        flatpakRemove_cmd = ['flatpak', 'remove', '{}']
-        if 'flatpak.' in specin:
-            unit = specin.replace('flatpak.', '')
-            subprocess.call(flatpakRemove_cmd.format(unit))
+        
+        if 'flatpak:' in specin:
+            unit = specin.replace('flatpak:', '')
+            flatpakRemove_cmd = ['flatpak', 'remove', '{}'.format(unit)]
+            subprocess.call(flatpakRemove_cmd)
         else:
             print('Unknown repo in %s' % (specin))
     def update():
         flatpakUpdate_cmd = ['flatpak', 'update', '-y']
         flatpakUpdate_proc = subprocess.call(flatpakUpdate_cmd)
     def find():
-        unit = specin.replace('flatpak.', '')
+        unit = specin.replace('flatpak:', '')
         if '.installed' in specin:
             subprocess.call(['flatpak', 'list'])
         else:
@@ -102,30 +155,30 @@ class flatpak():
 
 class nix():
     def install():
-        nixInstall_cmd = ['nix-env', '-iA', '--log-format', 'bar-with-logs', 'nixpkgs.{}']
-        if 'nix.' in specin:
-            unit = specin.replace('nix.', '')
-            nixInstall_proc = subprocess.call(nixInstall_cmd.format(unit))
+        if 'nix:' in specin:
+            unit = specin.replace('nix:', 'nixpkgs.')
+            nixInstall_cmd = ['nix-env', '-iA', '--log-format', 'bar-with-logs', '{}'.format(unit)]
+            nixInstall_proc = subprocess.call(nixInstall_cmd)
             if env_vars.autoRebase:
                 nixInstall_proc = subprocess.call(['nix-build', '<nixpkgs>', '-A', '{}'.format(unit), '--check'])
             if env_vars.autoCompactor:
-                __run.compactor()
+                run.compactor()
         else:
             print('Unknown repo in %s' % (specin))
     def shell():
-        nixShell_cmd = ['nix-shell', '-p', '{}']
-        if 'nix.' in specin:
-            unit = specin.replace('nix.', '')
-            nixShell_proc = subprocess.call(nixShell_cmd.format(unit))
+        if 'nix:' in specin:
+            unit = specin.replace('nix:', 'nixpkgs.')
+            nixShell_cmd = ['nix-shell', '-p', '{}'.format(unit)]
+            nixShell_proc = subprocess.call(nixShell_cmd)
         else:
             print('Unknown repo in {}'.format(specin))
     def remove():
-        nixRemove_cmd = ['nix-env', '-e', '--log-format', 'bar-with-logs', '{}']
-        if 'nix.' in specin:
-            unit = specin.replace('nix.', '')
-            subprocess.call(nixRemove_cmd.format(unit))
+        if 'nix:' in specin:
+            unit = specin.replace('nix:', '')
+            nixRemove_cmd = ['nix-env', '-e', '--log-format', 'bar-with-logs', '{}'.format(unit)]
+            subprocess.call(nixRemove_cmd)
             if env_vars.autoCollectGarbage == True:
-                __run.collectGarbage()
+                run.collectGarbage()
         else:
             print('Unknown repo in %s' % (specin))
     def update():
@@ -133,17 +186,19 @@ class nix():
         nix_envUpdate_cmd = ['nix-env', '--upgrade', '--log-format', 'bar-with-logs']
         nix_channelUpdate_root = ['sudo', 'nix-channel', '--update', '--log-format', 'bar-with-logs']
         nix_envUpdate_root = ['sudo', 'nix-env', '--upgrade', '--log-format', 'bar-with-logs']
-        #__run.collectGarbage()
-        nix_channelUpdate_root_proc = subprocess.call(nix_channelUpdate_root)
-        nix_envUpdate_root_proc = subprocess.call(nix_envUpdate_root)
+        #run.collectGarbage()
         nix_channelUpdate_proc = subprocess.call(nix_channelUpdate_cmd)
         nix_envUpdate_proc = subprocess.call(nix_envUpdate_cmd)
+        if env_vars.update_root == True:
+            nix_channelUpdate_root_proc = subprocess.call(nix_channelUpdate_root)
+            nix_envUpdate_root_proc = subprocess.call(nix_envUpdate_root)
+        
         # gc = input('Run garbage collection? y/N')
         # if gc == 'y' or 'Y':
         #     collectGarbage()
     def find():
-        unit = specin.replace('nix.', '')
-        nixsearchurl = 'https://search.nixos.org/packages?type=packages&query={}'
+        unit = specin.replace('nix:', '')
+        nixsearchurl = 'https://search.nixos.org/packages?type=packages&query={}'.format(unit)
         if '.installed' in specin:
             if unit == 'installed':
                 print('Installed nixpkgs:')
@@ -155,11 +210,11 @@ class nix():
         # instead, just search the repo website via a browser stored in env_vars.browser = {}
         # change or add 'nixsearchurl' to change the repo that is searched
         else:
-            subprocess.call([env_vars.browser, nixsearchurl.format(unit)])
+            subprocess.call(['/opt/firefox-nightly/firefox', '--private-window', '{}'.format(nixsearchurl)]) # env_vars.browser,
     def build():
-        if 'nix.' in specin:
-            unit = specin.replace('nix.', '')
-            nixBuild_proc = ['nix-env', '-iA', '--option', 'substitute', 'false', '--log-format', 'bar-with-logs', 'nixpkgs.{}'.format(unit)]
+        if 'nix:' in specin:
+            unit = specin.replace('nix:', 'nixpkgs.')
+            nixBuild_proc = ['nix-env', '-iA', '--option', 'substitute', 'false', '--log-format', 'bar-with-logs', '{}'.format(unit)]
             subprocess.call(nixBuild_proc)
             #os.system('nix-env -iA --option substitute false --log-format bar-with-logs nixpkgs.%s' % (unit))
         elif 'nur.' in specin:
@@ -168,39 +223,44 @@ class nix():
             #os.system("nix-env -f '<nixpkgs>' -iA --option substitute false --log-format bar-with-logs %s" % (specin))
 
 if args.install:
-    if 'nix.' in specin:
+    if 'nix:' in specin:
         nix.install()
-    elif 'aur.' in specin:
+    elif 'aur:' in specin:
+        subprocess.call(['sudo', 'echo', 'Changing user privileges ->'])
         aur.install()
-    elif 'flatpak.' in specin:
+    elif 'flatpak:' in specin:
         flatpak.install()
     exit()
 elif args.shell:
-    nix.shell()
+    if 'nix:' in specin:
+        nix.shell()
+    else:
+        shell()
     exit()
 elif args.remove:
-    if 'nix.' in specin:
+    if 'nix:' in specin:
         nix.remove()
-    elif 'aur.' in specin:
+    elif 'aur:' in specin:
         aur.remove()
-    elif 'flatpak.' in specin:
+    elif 'flatpak:' in specin:
         flatpak.remove()
     exit()
 elif args.update:
     nixUpdateThread = threading.Thread(target=nix.update)
     aurUpdateThread = threading.Thread(target=aur.update)
     flatpakUpdateThread = threading.Thread(target=flatpak.update)
-    subprocess.call(['sudo', 'echo', 'Changing user privileges ->'])
     if 'nix' in specin:
         if ':aur' in specin:
+            subprocess.call(['sudo', 'echo', 'Changing user privileges ->'])
             nixUpdateThread.start()
             aurUpdateThread.start()
         if ':flatpak' in specin:
             nixUpdateThread.start()
             flatpakUpdateThread.start()
         else:
-            nixUpdate()
+            nix.update()
     elif 'aur' in specin:
+        subprocess.call(['sudo', 'echo', 'Changing user privileges ->'])
         if ':nix' in specin:
             aurUpdateThread.start()
             nixUpdateThread.start()
@@ -211,6 +271,7 @@ elif args.update:
             aur.update()
     elif 'flatpak' in specin:
         if ':aur' in specin:
+            subprocess.call(['sudo', 'echo', 'Changing user privileges ->'])
             flatpakUpdateThread.start()
             aurUpdateThread.start()        
         if ':nix' in specin:
@@ -219,26 +280,35 @@ elif args.update:
         else:
             flatpak.update()
     else:
+        subprocess.call(['sudo', 'echo', 'Changing user privileges ->'])
         flatpakUpdateThread.start()
         aurUpdateThread.start()
         nixUpdateThread.start()
     exit()
 elif args.find:
-    if 'nix.' in specin:
+    if 'nix:' in specin:
         nix.find()
-    elif 'aur.' in specin:
+    elif 'aur:' in specin:
         aur.find()
-    elif 'flatpak.' in specin:
+    elif 'flatpak:' in specin:
         flatpak.find()
     exit()
 elif args.collectGarbage:
-    __run.collectGarbage()
+    run.collectGarbage()
     exit()
 elif args.compactor == True:
-    __run.compactor()
+    run.compactor()
     exit()
 elif args.debug == True:
-    print(specin)
+    print('Raw:', specin)
+    if 'nix:' in specin:
+        print('Nix:', specin.replace('nix:', 'nixpkgs.'))
+    if 'aur:' in specin:
+        print('AUR:', specin.replace('aur:', ''))
+    if 'flatpak:' in specin:
+        print('Flatpak:', specin.replace('flatpak:', ''))
+    exit()
 if args.version:
     print('Pyrex System Manager (nv) version 4.11.06')
     exit()
+print('Use `nv --help` for function details')
