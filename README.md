@@ -2,7 +2,7 @@
 ## Built with the intention of simplifying package distribution via declarative initialisation of nix, pacman, and flatpak in one function.
 
 # Goals:
-- [x] integration with Distrobox
+- [x] integration with Distrobox (in progress)
 - [ ] Search all 'repositories' give user prompt to choose where from
 - [ ] Proper config and installation method
 ## Current Version: 4.11.06
@@ -25,12 +25,13 @@ options:
   -i, --install         Install packages
   -t, --trash           Remove packages
   -o, --overhaul        Update system
-  -f, --find            Find packages1
+  -f, --find            Find packages
+  -sh, --shell          Install unit in non-persistent shell environment. (Does not support Flatpak)
+  -r, --run
   -gd, --garbage-disposal
-                        Collect unused packages/paths (Nix only for now)
-  -cc, --compact        Consolidate shared dependencies to save storage and optimize file paths at
-                        the expense of less reproducibility. (Set to true per install by default)
+                        Collect unused packages/paths (Nix function)
+  -cc, --compact        Consolidate shared dependencies to save storage and optimize file paths at the expense of
+                        less reproducibility. (Set to False per install by default)
   -v, --version         Show version number
-  --debug-parser
 
 ```
