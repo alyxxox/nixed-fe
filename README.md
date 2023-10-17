@@ -9,6 +9,8 @@
 
 ## Dependencies:
 - Python3 <=
+- distrobox
+- docker
 - nix (optional)
 - flatpak (optional)
 - yay/pacman (optional)
