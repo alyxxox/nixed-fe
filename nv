@@ -317,6 +317,6 @@ elif args.debug == True:
         print('Flatpak:', specin.replace('flatpak:', ''))
     exit()
 if args.version:
-    print('Pyrex System Manager (nv) version 4.11.06')
+    print('Pyrex System Manager (nv) version 4.12.02')
     exit()
 print('Use `nv --help` for function details')
