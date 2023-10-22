@@ -13,10 +13,26 @@
 - docker
 - nix 
 - flatpak
-- yay/pacman
+- yay & pacman
 
 ## Installation: 
-- `mv nvv.py /usr/local/bin/nvv`
+### Install prerequisites:
+- Install docker and distrobox
+  - Arch: `pacman -S docker distrobox`
+  - Debian: `apt install docker distrobox`
+  - Nix: `nix-env -i docker distrobox`
+- Enable docker daemon:
+  - `systemctl enable dockerd`
+- Create shell environments:
+  - `distrobox create -r --image archlinux -n arch-template`
+  - `distrobox create -r --image debian -n debian-template`
+  - `distrobox create -r --image fedora -n fedora-template`
+- Move python script to bin directory to be executed:
+  - `mv nvv.py /usr/local/bin/nvv`
+
+#### Potential issues:
+- If a permission denied error is given after moving /usr/bin/ then execution permissions need to be granted to the file. Executing the command below will grant said permissions.
+  - `chmod +x /usr/bin/nvv`
 
 ## Options:
 ```
