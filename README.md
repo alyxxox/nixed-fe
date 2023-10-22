@@ -18,7 +18,7 @@
 ## Installation: 
 ### Install prerequisites:
 - Install docker and distrobox
-  - Arch: `pacman -S docker distrobox`
+  - Arch: `yay -S docker distrobox`
   - Debian: `apt install docker distrobox`
   - Nix: `nix-env -i docker distrobox`
 - Enable docker daemon:
