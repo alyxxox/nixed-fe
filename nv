@@ -28,98 +28,143 @@ class CliParser:
         return cleaned_input
 cli_parser = CliParser(args.package)
 specin = cli_parser.clean_input()
-## define package value depending on chosen package manager
-repo = 'none'
-if 'aur:' in specin:
-    repo = 'arch'
-    package = specin.replace('aur:', '')
-    install_cmd = ['yay', '-S', '{}'.format(package)]
-    remove_cmd = ['yay', '-R', '{}'.format(package), '--noconfirm']
-    update_cmd = ['yay', '--noconfirm']
-    find_cmd = ['yay', '-Ss', '{}'.format(package)]
-elif 'nix:' in specin:
-    repo = 'nix'
-    package = specin.replace('nix:', '')
-    install_cmd = ['nix-env', '-iA', '--log-format', 'bar-with-logs', '{}'.format(package)]
-    remove_cmd = ['nix-env', '-e', '--log-format', 'bar-with-logs', '{}'.format(package)]
-    nix_channelUpdate_cmd = ['nix-channel', '--update', '--log-format', 'bar-with-logs']
-    nix_envUpdate_cmd = ['nix-env', '--upgrade', '--log-format', 'bar-with-logs']
-    nix_channelUpdate_root = ['sudo', 'nix-channel', '--update', '--log-format', 'bar-with-logs']
-    nix_envUpdate_root = ['sudo', 'nix-env', '--upgrade', '--log-format', 'bar-with-logs']
-    find_cmd = ['firefox', '--private-window', 'https://search.nixos.org/packages?type=packages&query={}'.format(package)]
-elif 'flatpak:' in specin:
-    repo = 'flatpak'
-    package = specin.replace('flatpak:', '')
-    install_cmd = ['flatpak', 'install', '{}'.format(package)]
-    remove_cmd = ['flatpak', 'remove', '{}'.format(package)]
-    update_cmd = ['flatpak', 'update', '-y']
-    find_cmd = ['flatpak', 'search', '{}'.format(package)]
-elif 'apt:' in specin:
-    repo = 'debian'
-    package = specin.replace('apt:', '')
+if specin != 'None':
+    repo = specin.split(':')[0]
+    package = specin.split(':')[1]
+else:
+    repo = 'None'
+    package = 'None'
+if repo == 'aur':
+    container = 'arch-template'
+elif repo == 'apt':
     container = 'debian-template'
-    install_cmd = ['distrobox', 'enter', '{}'.format(container), '-r', '-e', 'sudo', 'apt', 'install', '{}'.format(package)]
-    remove_cmd = ['distrobox', 'enter', '{}'.format(container), '-r', '-e', 'sudo', 'apt', 'remove', '{}'.format(package)]
-    update_cmd = ['distrobox', 'enter', '{}'.format(container), '-r', '-e', 'sudo', 'apt', 'update &&', 'sudo', 'apt', 'upgrade']
-    find_cmd = ['distrobox', 'enter', '{}'.format(container), '-r', '-e', 'sudo', 'apt', 'search', '{}'.format(package)]
-elif 'dnf:' in specin:
-    repo = 'fedora'
-    package = specin.replace('dnf:', '')
+elif repo == 'dnf':
     container = 'fedora-template'
-    install_cmd = ['distrobox', 'enter', '{}'.format(container), '-r', '-e', 'sudo', 'dnf', 'install', '{}'.format(package)]
-    remove_cmd = ['distrobox', 'enter', '{}'.format(container), '-r', '-e', 'sudo', 'dnf', 'remove', '{}'.format(package)]
-    update_cmd = ['distrobox', 'enter', '{}'.format(container), '-r', '-e', 'sudo', 'dnf', 'update']
-    find_cmd = ['distrobox', 'enter', '{}'.format(container), '-r', '-e', 'sudo', 'dnf', 'search', '{}'.format(package)]
+else:
+    _class = 'None'
+    container = 'None'
+class arch_commands():
+    install = ['yay', '-S', '{}'.format(package)]
+    remove = ['yay', '-R', '{}'.format(package)]
+    update = ['yay', '--noconfirm']
+    find = ['yay', '-Ss', '{}'.format(package)]
+    run = ['distrobox', 'enter', 'arch-template', '-r', '-e', '{}'.format(package)]
+    shell = ['distrobox', 'enter', 'arch-template', '-r', '-e', 'yay', '-S', '{}'.format(package)]
+class flatpak_commands():
+    install = ['flatpak', 'install', '{}'.format(package)]
+    remove = ['flatpak', 'remove', '{}'.format(package)]
+    update = ['flatpak', 'update', '--assumeyes', '--noninteractive']
+    find = ['flatpak', 'search', '{}'.format(package)]
+class fedora_commands():
+    install = ['distrobox', 'enter', 'fedora-template', '-r', '-e', 'sudo', 'dnf', 'install', '{}'.format(package)]
+    remove = ['distrobox', 'enter', 'fedora-template', '-r', '-e', 'sudo', 'dnf', 'remove', '{}'.format(package)]
+    update = ['distrobox', 'enter', 'fedora-template', '-r', '-e', 'sudo', 'dnf', 'update', '-y']
+    find = ['distrobox', 'enter', 'fedora-template', '-r', '-e', 'sudo', 'dnf', 'search', '{}'.format(package)]
+    run = ['distrobox', 'enter', 'fedora-template', '-r', '-e', '{}'.format(package)]
+class debian_commands():
+    install = ['distrobox', 'enter', 'debian-template', '-r', '-e', 'sudo', 'apt', 'install', '{}'.format(package)]
+    remove = ['distrobox', 'enter', 'debian-template', '-r', '-e', 'sudo', 'apt', 'remove', '{}'.format(package)]
+    update = ['distrobox', 'enter', 'debian-template', '-r', '-e', 'sudo', 'apt', 'update', '-y']
+    upgrade = ['distrobox', 'enter', 'debian-template', '-r', '-e', 'sudo', 'apt', 'upgrade', '-y']
+    find = ['distrobox', 'enter', 'debian-template', '-r', '-e', 'sudo', 'apt', 'search', '{}'.format(package)]
+    run = ['distrobox', 'enter', 'debian-template', '-r', '-e', '{}'.format(package)]
 def stopBox():
-    subprocess.Popen(['distrobox', 'stop', '-Y', '-r', '{}'.format(container)])
-def nixUpdate():
-    subprocess.call(nix_channelUpdate_cmd)
-    subprocess.call(nix_envUpdate_cmd)
-    subprocess.call(nix_channelUpdate_root)
-    subprocess.call(nix_envUpdate_root)
-def install():
-    install_proc = subprocess.call(install_cmd)
-def remove():
-    remove_proc = subprocess.call(remove_cmd)
-def update():
-    if repo == 'nix':
-        nixUpdate()
-    elif repo == 'none':
-        aurUpdate_proc = subprocess.call(['yay', '--noconfirm'])
-        nixUpdate()
-        flatpakUpdate_proc = subprocess.call(['flatpak', 'update', '-y'])
-    else:
-        update_proc = subprocess.call(update_cmd)
-def find():
-    find_proc = subprocess.call(find_cmd)
-
-if args.find == True:
-    if repo == 'debian' or 'fedora':
-        find()
-        stopBox()
-    else:
-        find()
+    subprocess.call(['distrobox', 'stop', '-Y', '-r', '{}'.format(container)])
+class nix_commands():
+    install = ['nix-env', '-iA', '--log-format', 'bar-with-logs', '{}'.format(package)]
+    shell = ['nix-shell', '-p', '{}'.format(package)]
+    remove = ['nix-env', '-e', '--log-format', 'bar-with-logs', '{}'.format(package)]
+    channelUpdate = ['nix-channel', '--update', '--log-format', 'bar-with-logs']
+    envUpdate = ['nix-env', '--upgrade', '--log-format', 'bar-with-logs']
+    channelUpdate_root = ['sudo', 'nix-channel', '--update', '--log-format', 'bar-with-logs']
+    envUpdate_root = ['sudo', 'nix-env', '--upgrade', '--log-format', 'bar-with-logs']
+    find = ['firefox', '--private-window', 'https://search.nixos.org/packages?type=packages&query={}'.format(package)]
+if repo == 'apt':
+    _class = debian_commands
+elif repo == 'dnf':
+    _class = fedora_commands
+elif repo == 'aur':
+    _class = arch_commands
+elif repo == 'nix':
+    _class = nix_commands
+elif repo == 'flatpak':
+    _class = flatpak_commands
+def gainPrivs():
+    subprocess.call(['sudo', 'echo', 'Changing user privileges ->'])
+if args.version:
+    print('Pyrex System Manager (nv) version 5.2.1')
     exit()
-subprocess.call(['sudo', 'echo', 'Changing user privileges ->'])
+if args.debug == True:
+    print('Specin:', specin)
+    print('Repo:', repo)
+    print('Package:', package)
+    print('Class:', _class)
+    print('Container:', container)
+    exit()
+    #print(class.install)
+if args.find == True:
+    subprocess.call(_class.find)
+    exit
 if args.install == True:
-    if repo == 'debian' or 'fedora':
-        install()
-        stopBox()
-        exit()
-    else:
-        install()
-        exit()
+    gainPrivs()
+    subprocess.call(_class.install)
+    exit()
+if args.shell == True:
+    gainPrivs()
+    subprocess.call(_class.shell)
+    exit()
 elif args.remove == True:
-    if repo == 'debian' or 'fedora':
-        remove()
-        stopBox()
-    else:
-        remove()
+    gainPrivs()
+    subprocess.call(_class.remove)
+    #if repo == 'apt' or 'dnf':
+    #    stopBox()
     exit()
 elif args.update == True:
-    if repo == 'debian' or 'fedora':
-        update()
-        stopBox()
+    gainPrivs()
+    def archUpdate():
+        subprocess.call(arch_commands.update)
+        return()
+    def nixUpdate():
+        subprocess.Popen(nix_commands.channelUpdate)
+        subprocess.call(nix_commands.channelUpdate_root)
+        subprocess.Popen(nix_commands.envUpdate)
+        subprocess.call(nix_commands.envUpdate_root)
+        return()
+    def flatpakUpdate():
+        flatpakUpdate_proc = subprocess.call(flatpak_commands.update)
+        #flatpakUpdate_proc.communicate()[0]
+        return()
+    def debianUpdate():
+        container = 'debian-template'
+        debianUpdate_proc = subprocess.call(debian_commands.update)
+        debianUpgrade_proc = subprocess.call(debian_commands.upgrade)
+        #debianUpdate_proc.communicate()[0]
+        return()
+        #stopBox()
+    def fedoraUpdate():
+        container = 'fedora-template'
+        fedoraUpdate_proc = subprocess.call(fedora_commands.update)
+        #fedoraUpdate_proc.communicate()[0]
+        return()
+        #stopBox()
+    archUpdateThread = threading.Thread(target=archUpdate)
+    nixUpdateThread = threading.Thread(target=nixUpdate)
+    flatpakUpdateThread = threading.Thread(target=flatpakUpdate)
+    #debianUpdateThread = threading.Thread(target=debianUpdate)
+    #fedoraUpdateThread = threading.Thread(target=fedoraUpdate)
+    if repo == 'None':
+        archUpdateThread.start()
+        nixUpdateThread.start()
+        flatpakUpdateThread.start()
+        debianUpdate()
+        fedoraUpdate()
+    elif repo == 'nix':
+        nixUpdate()
     else:
-        update()
+        subprocess.call(_class.update)
     exit()
+if args.run == True:
+    gainPrivs()
+    subprocess.call(_class.run)
+    exit()
+print('Use `nv --help` for function details')
