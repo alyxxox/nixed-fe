@@ -2,21 +2,21 @@
 ## Built with the intention of simplifying package distribution across all Linux distributions. 
 
 # Goals:
-- [ ] integration with Distrobox (in progress)
+- [x] integration with Distrobox (in progress)
 - [ ] Search all 'repositories' give user prompt to choose where from
 - [ ] Proper config and installation method
-## Current Version: 5.0.0-a1
+## Current Version: 5.2.1
 
 ## Dependencies:
 - Python3 <=
 - distrobox
 - docker
-- nix (optional)
-- flatpak (optional)
-- yay/pacman (optional)
+- nix 
+- flatpak
+- yay/pacman
 
 ## Installation: 
-- `mv nv /usr/local/bin/`
+- `mv nvv.py /usr/local/bin/nvv`
 
 ## Options:
 ```
