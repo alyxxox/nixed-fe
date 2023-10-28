@@ -6,7 +6,7 @@
 - [ ] Search all 'repositories' give user prompt to choose where from
 - [ ] **Proper config and installation method**
   - *There is honestly nothing really stopping me from writing a quick install.py script or something (or even figuring out how to enter into distro repos) but ive been finding working on this or other stuff more fun then making it usable for the public. Sorry as this is a mostly personal project currently, I will get to that eventually though!*
-## Current Version: 5.3
+## Current Version: 5.3-4
 
 ## Dependencies:
 - Python3 <=
