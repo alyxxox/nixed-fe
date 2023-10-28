@@ -18,24 +18,25 @@
 - neofetch
 
 ## Installation: 
-### Prerequisites:
-- Install depends: 
-  - Arch: `yay -S docker distrobox neofetch`
-  - Debian: `apt install docker distrobox neofetch`
-  - Nix: `nix-env -i docker distrobox neofetch`
-- Enable docker daemon:
-  - `systemctl enable dockerd`
-- Create shell environments:
-  - `distrobox create -r --image archlinux -n arch-template`
-  - `distrobox create -r --image debian -n debian-template`
-  - `distrobox create -r --image fedora -n fedora-template`
-### "Install"
+### "Install" script and configs
 - Move python script to bin directory to be executed:
   - `mv nvv.py /usr/bin/nvv`
 - Create configs dir
   - `mkdir -p /etc/pyrex/nvv/`
 - Move version.conf file to etc dir:
   - `mv pyrexVersion.conf /etc/pyrex/nvv/`
+### Postrequisites:
+- Install depends: 
+  - Arch: `yay -S docker distrobox neofetch`
+  
+  **While the aim is to be distro agnostic, it is currently very focused on an arch based system with Nix package manager installed alongside. It is wholly untested on Debian, Fedora, or NixOS and can't currently operate with their package managers outside of passing commands through distrobox or using commands intended for nix-darwin. Although fixing this is exactly what I plan to work on next**
+  - Debian: `apt install docker distrobox neofetch`
+  - Nix: `nix-env -i docker distrobox neofetch`
+- Enable docker daemon:
+  - `systemctl enable dockerd`
+- Generate the distrobox template containers:
+  - Shell containers won't function without this (although the rest of the script should remain functional afaik, the interpreter may get confused at parts though, im unsure.)
+  - `nvv --generate-templates`
 
 #### Potential issues:
 - If a permission denied error is given after moving /usr/bin/ then execution permissions need to be granted to the file. Executing the command below will grant said permissions.
