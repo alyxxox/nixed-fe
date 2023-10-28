@@ -4,8 +4,9 @@
 # Goals:
 - [x] integration with Distrobox (in progress)
 - [ ] Search all 'repositories' give user prompt to choose where from
-- [ ] Proper config and installation method
-## Current Version: 5.2.1
+- [ ] **Proper config and installation method**
+  - *There is honestly nothing really stopping me from writing a quick install.py script or something (or even figuring out how to enter into distro repos) but ive been finding working on this or other stuff more fun then making it usable for the public. Sorry as this is a mostly personal project currently, I will get to that eventually though!*
+## Current Version: 5.3
 
 ## Dependencies:
 - Python3 <=
@@ -14,21 +15,27 @@
 - nix 
 - flatpak
 - yay & pacman
+- neofetch
 
 ## Installation: 
-### Install prerequisites:
-- Install docker and distrobox
-  - Arch: `yay -S docker distrobox`
-  - Debian: `apt install docker distrobox`
-  - Nix: `nix-env -i docker distrobox`
+### Prerequisites:
+- Install depends: 
+  - Arch: `yay -S docker distrobox neofetch`
+  - Debian: `apt install docker distrobox neofetch`
+  - Nix: `nix-env -i docker distrobox neofetch`
 - Enable docker daemon:
   - `systemctl enable dockerd`
 - Create shell environments:
   - `distrobox create -r --image archlinux -n arch-template`
   - `distrobox create -r --image debian -n debian-template`
   - `distrobox create -r --image fedora -n fedora-template`
+### "Install"
 - Move python script to bin directory to be executed:
-  - `mv nvv.py /usr/local/bin/nvv`
+  - `mv nvv.py /usr/bin/nvv`
+- Create configs dir
+  - `mkdir -p /etc/pyrex/nvv/`
+- Move version.conf file to etc dir:
+  - `mv pyrexVersion.conf /etc/pyrex/nvv/`
 
 #### Potential issues:
 - If a permission denied error is given after moving /usr/bin/ then execution permissions need to be granted to the file. Executing the command below will grant said permissions.
