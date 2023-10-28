@@ -10,7 +10,8 @@ home_dir = os.path.expanduser('~')
 config_dir = '/etc/pyrex/nvv/'
 version_config = config_dir+'pyrexVersion.config'
 
-parser = argparse.ArgumentParser(description='Pyrex4 System Manager. Built with the intention of simplifying package distribution via declarative initialisation of nix, pacman, flatpak in one function.',)
+parser = argparse.ArgumentParser(description='Pyrex4 System Manager. Built with the intention of simplifying package distribution via declarative initialisation of nix, pacman, flatpak in one function.', add_help=False)
+parser.add_argument('-h', '--help', action='store_true')
 parser.add_argument('-i', '--install', dest='install', action='store_true', help='Install packages')
 parser.add_argument('-t', '--trash', dest='remove', action='store_true', help='Remove packages')
 parser.add_argument('-o', '--overhaul', dest='update', action='store_true', help='Update system')
@@ -18,12 +19,12 @@ parser.add_argument('-f', '--find', dest='find', action='store_true', help='Find
 #parser.add_argument('--verbose', dest='verbose', action='store_true', help='Require user confirmation before any command is processed. (Currently only implemented with AUR)')
 #parser.add_argument('-fs', '--from-scratch', dest='source', action='store_true', help='Build and install package from source (Nix only for now)')
 parser.add_argument('-sh', '--shell', dest='shell', action='store_true', help='Install package in non-persistent shell environment. (Does not support Flatpak)')
-parser.add_argument('-r', '--run', dest='run', action='store_true')
+parser.add_argument('-r', '--run', dest='run', action='store_true', help='Run a package installed in a shell environment (or run any shell to make customisations to the template)')
 parser.add_argument('-gd', '--garbage-disposal', dest='collectGarbage', action='store_true', help='Collect unused packages/paths (Nix function)')
 parser.add_argument('-cc', '--compact', dest='compactor', action='store_true', help='Consolidate shared dependencies to save storage and optimize file paths at the expense of less reproducibility. (Set to False per install by default)')
+parser.add_argument('--generate-templates', dest='generate_templates', action='store_true', help='Generate shell templates automatically.')
+parser.add_argument('--refresh-templates', dest='refresh_templates', action='store_true', help='Remove shell templates and replace with using fresh images in case they get too full or configs are messed up')
 parser.add_argument('-v', '--version', dest='version', action='store_true', help='Show version number')
-parser.add_argument('--generate-templates', dest='refresh_templates', action='store_true')
-parser.add_argument('--refresh-templates', dest='refresh_templates', action='store_true')
 parser.add_argument('-dbd', '--debug', dest='debug', action='store_true', help="Prints the raw output of the input parser. For debugging purposes and shouldn't be included in final release")
 parser.add_argument(dest='package', action='append', nargs='?', help='must be the last argument presented')
 args = parser.parse_args()
@@ -121,6 +122,80 @@ else:
     _class = nix_commands
 def gainPrivs():
     cmm(['sudo', 'echo', 'Changing user privileges ->'])
+
+if args.help == True:
+    print('''
+usage: nvv [-h] [-i] [-t] [-o] [-f] [-sh] [-r] [-gd] [-cc] [--generate-templates] [--refresh-templates] [-v] [-dbd]
+
+options:
+  -i    Install packages
+  -t    Remove packages
+  -o    Update system
+  -f    Find packages
+  -sh   Install package in non-persistent shell environment.
+  -r    Run a package installed in a shell environment
+  -gd   Collect unused packages/paths (Nix function)
+  -cc   Consolidate shared dependencies to save storage and optimize file paths (Nix function)
+  -v    Show version number
+
+Long-form commands:
+    --install
+    --trash
+    --overhaul
+    --find
+    --shell
+    --run
+    --garbage-disposal
+    --compact
+    --generate-templates
+    --refresh-templates
+    --version
+
+Syntax:
+nvv [command] [repo]:[package]
+    Example:
+
+        `nvv -i aur:firefox`
+
+        This is going to install firefox using the Pacman package manager.
+        
+Nix is set to be the default package manager so if the repo is left blank then it will pull from there
+    Example:
+
+        `nvv -i :firefox`
+
+        This is going to install firefox using the Nix package manager.
+    
+Inspired by Nix's shell environments allowing you try a 
+package without permanently installing or touching system directories, 
+I integrated distrobox for just this function. 
+    
+    Using the `--shell` arugment, a distrobox template will be duplicated, 
+    afterwards, the package requested will be installed in that new container. 
+    Upon exiting this container, it will be shut down and promptly deleted from 
+    your system leaving no traces.
+    (except anything that may have touched the home dir. )
+    Example:
+
+        `nvv -sh apt:firefox`
+
+        This will duplicate the docker image 'debian-template' using distrobox,
+        and then run the command 'sudo apt install firefox' within the container.
+        Once you exit the container, it will be stopped, and deleted.
+
+Updates are performed system wide.
+    When a command like `nvv -o` is issued, 
+    packages from pacman, nix (under both standard and root user), flatpak, apt, and dnf
+    will be updated. 
+    
+    If you wish to update a single repo at a time, you can always specify.
+    Example:
+
+        `nvv -o aur:`
+
+        This will update the base system using pacman (yay) and also the arch-template container.
+    ''')
+    exit()
 if args.version:
     def getVersion():
         cmm(['neofetch', '--config', '/etc/pyrex/nvv/pyrexVersion.conf'.format(home_dir)])
