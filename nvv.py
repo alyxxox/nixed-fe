@@ -22,6 +22,7 @@ parser.add_argument('-r', '--run', dest='run', action='store_true')
 parser.add_argument('-gd', '--garbage-disposal', dest='collectGarbage', action='store_true', help='Collect unused packages/paths (Nix function)')
 parser.add_argument('-cc', '--compact', dest='compactor', action='store_true', help='Consolidate shared dependencies to save storage and optimize file paths at the expense of less reproducibility. (Set to False per install by default)')
 parser.add_argument('-v', '--version', dest='version', action='store_true', help='Show version number')
+parser.add_argument('--generate-templates', dest='refresh_templates', action='store_true')
 parser.add_argument('--refresh-templates', dest='refresh_templates', action='store_true')
 parser.add_argument('-dbd', '--debug', dest='debug', action='store_true', help="Prints the raw output of the input parser. For debugging purposes and shouldn't be included in final release")
 parser.add_argument(dest='package', action='append', nargs='?', help='must be the last argument presented')
@@ -122,7 +123,6 @@ def gainPrivs():
     cmm(['sudo', 'echo', 'Changing user privileges ->'])
 if args.version:
     def getVersion():
-
         cmm(['neofetch', '--config', '/etc/pyrex/nvv/pyrexVersion.conf'.format(home_dir)])
     getVersion()
     exit()
@@ -233,6 +233,13 @@ elif args.update == True:
         if repo == 'apt' or repo == 'dnf':
             stopBox()
     exit()
+if args.generate_templates == True:
+    gainPrivs()
+    print('Creating templates...')
+    cmm(arch_commands.createShell)
+    cmm(fedora_commands.createShell)
+    cmm(debian_commands.createShell)
+    #print('Preparing templates...')
 if args.refresh_templates == True:
     gainPrivs()
     def debian_run():
