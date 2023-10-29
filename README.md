@@ -24,7 +24,7 @@
 - Create configs dir
   - `mkdir -p /etc/pyrex/nvv/`
 - Move version.conf file to etc dir:
-  - `mv pyrexVersion.conf /etc/pyrex/nvv/`
+  - `mv help.conf /etc/pyrex/nvv/`
 ### Postrequisites:
 - Install depends: 
   - Arch: `yay -S docker distrobox neofetch`
