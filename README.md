@@ -44,18 +44,35 @@
 
 ## Options:
 ```
+Repositories:
+    [aur] - [Installs directly to system using pacman]
+    [nix] - [Installs to user profile managed by Nix]
+    [flatpak] - [Installs using flatpak]
+    [apt] - [Creates a Debian container and installs package]
+    [dnf] - [Creates a Fedora container and installs package]
+
 options:
-  -h, --help            show this help message and exit
-  -i, --install         Install packages
-  -t, --trash           Remove packages
-  -o, --overhaul        Update system
-  -f, --find            Find packages
-  -sh, --shell          Install unit in non-persistent shell environment. (Does not support Flatpak)
-  -r, --run
-  -gd, --garbage-disposal
-                        Collect unused packages/paths (Nix function)
-  -cc, --compact        Consolidate shared dependencies to save storage and optimize file paths at the expense of
-                        less reproducibility. (Set to False per install by default)
-  -v, --version         Show version number
+    -i    Install packages
+    -t    Remove packages
+    -o    Update system
+    -f    Find packages
+    -sh   Install package in non-persistent shell environment.
+    -r    Run a package installed in a shell environment
+    -gd   Collect unused packages/paths (Nix function)
+    -cc   Consolidate shared dependencies to save storage and optimize file paths (Nix function)
+    -v    Show version number
+
+Long-form commands:
+    --install
+    --trash
+    --overhaul
+    --find
+    --shell
+    --run
+    --garbage-disposal
+    --compact
+    --generate-templates
+    --refresh-templates
+    --version
 
 ```
