@@ -85,7 +85,7 @@ class debian_commands():
     shellInstall = ['distrobox', 'enter', '{}'.format(shellName), '-r', '-e', 'sudo', 'apt', 'install', '{}'.format(package)]
     remove = ['distrobox', 'enter', '{}'.format(container), '-r', '-e', 'sudo', 'apt', 'remove', '{}'.format(package)]
     update = ['distrobox', 'enter', 'debian-template', '-r', '-e', 'sudo', 'apt', 'update', '-y']
-    upgrade = ['distrobox', 'enter', '{}'.format(container), '-r', '-e', 'sudo', 'apt', 'upgrade', '-y']
+    upgrade = ['distrobox', 'enter', 'debian-template', '-r', '-e', 'sudo', 'apt', 'upgrade', '-y']
     find = ['distrobox', 'enter', '{}'.format(container), '-r', '-e', 'sudo', 'apt', 'search', '{}'.format(package)]
     run = ['distrobox', 'enter', '{}'.format(container), '-r', '-e', '{}'.format(package)]
     createShell = ['distrobox', 'create', '-r', '--image', 'debian', '-n', 'debian-template', '-a', '--volume="$HOME/.Xauthority:/root/.Xauthority:rw"']
@@ -120,23 +120,29 @@ else:
     repo = 'nix'
     updateRepo = 'all'
     _class = nix_commands
+
 def gainPrivs():
     cmm(['sudo', 'echo', 'Changing user privileges ->'])
 
 if args.help == True:
-    print('''
-usage: nvv [-h] [-i] [-t] [-o] [-f] [-sh] [-r] [-gd] [-cc] [--generate-templates] [--refresh-templates] [-v] [-dbd]
+    print('''nvv [command] [repo]:[package]
+Repositories:
+    [aur] - [Installs directly to system using pacman]
+    [nix] - [Installs to user profile managed by Nix]
+    [flatpak] - [Installs using flatpak]
+    [apt] - [Creates a Debian container and installs package]
+    [dnf] - [Creates a Fedora container and installs package]
 
 options:
-  -i    Install packages
-  -t    Remove packages
-  -o    Update system
-  -f    Find packages
-  -sh   Install package in non-persistent shell environment.
-  -r    Run a package installed in a shell environment
-  -gd   Collect unused packages/paths (Nix function)
-  -cc   Consolidate shared dependencies to save storage and optimize file paths (Nix function)
-  -v    Show version number
+    -i    Install packages
+    -t    Remove packages
+    -o    Update system
+    -f    Find packages
+    -sh   Install package in non-persistent shell environment.
+    -r    Run a package installed in a shell environment
+    -gd   Collect unused packages/paths (Nix function)
+    -cc   Consolidate shared dependencies to save storage and optimize file paths (Nix function)
+    -v    Show version number
 
 Long-form commands:
     --install
@@ -152,7 +158,6 @@ Long-form commands:
     --version
 
 Syntax:
-nvv [command] [repo]:[package]
     Example:
 
         `nvv -i aur:firefox`
@@ -217,7 +222,8 @@ elif args.find == True:
     cmm(_class.find)
     exit()
 elif args.install == True:
-    gainPrivs()
+    if repo != 'nix':
+        gainPrivs()
     cmm(_class.install)
     if repo == 'apt' or repo == 'dnf':
         stopBox()
@@ -225,7 +231,7 @@ elif args.install == True:
 elif args.shell == True:
     gainPrivs()
     if repo == 'nix':
-        cmm(nix.shell)
+        cmm(nix_commands.shell)
     else:
         def shellWrapper():
             distrobox_create = ['distrobox', 'create', '-r', '-c', '{}'.format(container), '-n', '{}'.format(shellName), '-a', '--volume="$HOME/.Xauthority:/root/.Xauthority:rw"']
@@ -253,10 +259,9 @@ elif args.compactor == True:
     cmm(nix_commands.optimise)
     exit()
 elif args.update == True:
-    gainPrivs()
     def archUpdate():
         print('--------------------------------------\nSYSTEM:: Updating packages\n-----------------------------')
-        cmm(arch_commands.update)
+        archUpdate = cmm(arch_commands.update)
         print('--------------------------------------\nARCH-SHELL:: Updating packages\n-----------------------------')
         cmm(arch_commands.shellUpdate)
         return()
@@ -272,14 +277,14 @@ elif args.update == True:
         cmm(nix_commands.envUpdate_root)
         return()
     def flatpakUpdate():
-        print('--------------------------------------\nFLATPAK:: Updating packages\n-----------------------------')
+        print('--------------------------------------\nFLATPAK-USER:: Updating packages\n-----------------------------')
         flatpakUpdate_proc = cmm(flatpak_commands.update)
         return()
     def debianUpdate():
         container = 'debian-template'
-        print('--------------------------------------\nDEBIAN-SHELL:: Updating packages\n-----------------------------')
+        print('--------------------------------------\nDEBIAN-SHELL:: Updating repo\n-----------------------------')
         debianUpdate_proc = cmm(debian_commands.update)
-        print('--------------------------------------\nDEBIAN-SHELL:: Updating packages\n-----------------------------')
+        print('--------------------------------------\nDEBIAN-SHELL:: Upgrading packages\n-----------------------------')
         debianUpgrade_proc = cmm(debian_commands.upgrade)
         return()
     def fedoraUpdate():
@@ -291,17 +296,25 @@ elif args.update == True:
     nixUpdateThread = threading.Thread(target=nixUpdate)
     flatpakUpdateThread = threading.Thread(target=flatpakUpdate)
     if updateRepo == 'all':
-        archUpdateThread.start()
-        time.sleep(1)
-        nixUpdateThread.start()
-        time.sleep(1)
-        flatpakUpdateThread.start()
-        debianUpdate()
-        fedoraUpdate()
-        stopBox
+        conf = input('It is highly recommended to only update one repository at a time, are you sure? y/N ')
+        if conf == 'y':
+            gainPrivs()
+            archUpdateThread.start()
+            time.sleep(1)
+            nixUpdateThread.start()
+            time.sleep(1)
+            flatpakUpdateThread.start()
+            debianUpdate()
+            fedoraUpdate()
+            stopBox
+        elif conf != 'y':
+            exit()
     elif updateRepo == 'nix':
         nixUpdate()
     else:
+        if repo == 'None':
+            print('Please prefix with the desired repository')
+        gainPrivs()
         cmm(_class.update)
         if updateRepo == 'aur':
             cmm(arch_commands.shellUpdate)
